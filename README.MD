@@ -11,7 +11,8 @@ in unit testing and code coverage.
 | `README.MD` | This document. |
 | `grade-calculator/go.mod` | Go module definition (`esep/grade-calculator`, Go 1.24.4). |
 | `grade-calculator/grade_calculator.go` | The library: `GradeCalculator`, `Grade`, and `GradeType`. |
-| `grade-calculator/grade_calculator_test.go` | Unit tests for the library. |
+| `grade-calculator/grade_calculator_test.go` | Unit tests for letter grades, weights, and edge cases. |
+| `grade-calculator/grade_calculator_passfail_test.go` | Unit tests for Pass/Fail grading. |
 
 ## Requirements
 
@@ -99,7 +100,7 @@ Coverage profiles are generated output and should not be committed.
 1. Create a calculator with `NewGradeCalculator()`.
 2. Record each score with `AddGrade(name, grade, gradeType)`. The grade
    type decides which category the score belongs to.
-3. Call `GetFinalGrade()` to get the final letter grade.
+3. Call `GetFinalGrade()` to get the final grade.
 
 `GetFinalGrade()` averages the scores in each category, combines the three
 category averages using the weights below, and converts the weighted
@@ -131,13 +132,29 @@ numerical grade = assignment average * 0.50
 
 A grade of C or better (70 or above) is passing.
 
+A category with no grades averages to 0, so it contributes nothing to the
+numerical grade. The numerical grade is truncated, not rounded, so 89.65
+is a B.
+
+### Grading modes
+
+| `GradingMode` | `GetFinalGrade()` returns |
+| --- | --- |
+| `LetterGrade` (default) | `"A"`, `"B"`, `"C"`, `"D"`, or `"F"` |
+| `PassFail` | `"Pass"` for 70 or above, `"Fail"` below 70 |
+
+`NewGradeCalculator()` always uses `LetterGrade`. To choose a mode, create
+the calculator with `NewGradeCalculatorWithMode(mode)`.
+
 ## Public API
 
 | Name | Description |
 | --- | --- |
-| `NewGradeCalculator() *GradeCalculator` | Creates an empty calculator. |
+| `NewGradeCalculator() *GradeCalculator` | Creates an empty calculator in `LetterGrade` mode. |
+| `NewGradeCalculatorWithMode(mode GradingMode) *GradeCalculator` | Creates an empty calculator in the given grading mode. |
 | `(*GradeCalculator).AddGrade(name string, grade int, gradeType GradeType)` | Records one score in the given category. |
-| `(*GradeCalculator).GetFinalGrade() string` | Returns the final letter grade: `"A"`, `"B"`, `"C"`, `"D"`, or `"F"`. |
+| `(*GradeCalculator).GetFinalGrade() string` | Returns the final grade: a letter in `LetterGrade` mode, or `"Pass"` / `"Fail"` in `PassFail` mode. |
+| `GradingMode` | How the final grade is reported: `LetterGrade` or `PassFail`. |
 | `GradeType` | Category of a grade: `Assignment`, `Exam`, or `Essay`. |
 | `(GradeType).String() string` | Returns `"assignment"`, `"exam"`, or `"essay"`. |
 | `Grade` | A single recorded score with `Name`, `Grade`, and `Type` fields. |
@@ -158,4 +175,16 @@ gradeCalculator.AddGrade("essay on ai ethics", 85, Essay)
 finalGrade := gradeCalculator.GetFinalGrade() // "B"
 
 fmt.Println(Essay.String()) // "essay"
+```
+
+Pass/Fail grading with the same scores:
+
+```go
+gradeCalculator := NewGradeCalculatorWithMode(PassFail)
+
+gradeCalculator.AddGrade("open source assignment", 80, Assignment)
+gradeCalculator.AddGrade("exam 1", 81, Exam)
+gradeCalculator.AddGrade("essay on ai ethics", 85, Essay)
+
+finalGrade := gradeCalculator.GetFinalGrade() // "Pass"
 ```
